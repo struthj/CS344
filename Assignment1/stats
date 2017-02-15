@@ -1,0 +1,240 @@
+#!/bin/bash 
+# Name: struthj
+# CS344
+# Program 1: stats
+# Desc: Will calculate simple statistics for a row and column format txt file or stdin.
+
+#temp file for storing results
+TEMP="tmp$$"
+
+#use the trap command to catch interrupt, hangup, and terminate signals to 
+#remove temp file if prog fails
+trap "rm -f $TEMP; exit 1" INT HUP TERM
+
+#Variable strings
+#for use in diplaying messages to user
+USAGE="./stats {-rows|-cols} [file]"
+FileERR="stats can't read $2 (check permissions)"
+#acceptable parameter strings/arguments  
+rArg="-r"
+cArg="-c"
+
+#######Functions##############################
+# reference:http://www.linuxjournal.com/content/return-values-bash-functions
+
+##########################
+#use:badParams $x
+#params:helper function takes 1 arg and displays to user
+#desc:displays USAGE or bad params
+#########################
+badParams()
+{
+	echo $@ >&2
+	exit 1
+}
+
+###########################
+#use:avgRound $sum $totalrow/cols
+#params:takes 2 arguments 1st is sum, second is number of row/col
+#desc:Finds average of two numbers with rounding
+#http://www.mathsisfun.com/numbers/rounding-methods.html
+#(a + (b/2)) / b
+#values and results must be whole numbers/ints
+#Round up if remainder is greater than 0.5,
+# if not just return average
+#######################
+avgRound()
+{
+	local result=$((($1 +($2/2))/$2))
+	#return average 
+	echo "$result"
+}
+
+##############
+#use: sum $line 
+#params:takes one argument of line
+#desc:sums numbers in a line with a simple for loop and returns
+##############
+sumNums()
+{
+	local result=0
+	for i in $1
+	do
+		result=$(expr $result + $i)
+	done
+	echo "$result"
+}
+
+##########
+#use: getMedian $row/colVals
+#params:# takes one argument of number of values in row/col
+#desc:returns median postion
+##########
+getMedian()
+{
+	local result=$(( ($1+ (1) )/ 2))
+	echo "$result"
+}
+
+############Command line argument checking/input validation #################
+#reference: http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_07_02.html
+
+#must have exactly 1 arg if reading from stdin or 2 if reading from a file 
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]
+then
+   badParams $USAGE
+fi
+
+#substring expansion for parameter 1 (row/col)
+#http://www.tldp.org/LDP/abs/html/parameter-substitution.html
+#get mode of operation either row or col (-r or -c)
+operationMode=$(echo "${1:0:2}")
+
+#Check if the row/column args start with either "-r" or "-c"
+if [ "$operationMode" != $rArg ] && [ "$operationMode" != $cArg ]
+then
+   badParams $USAGE	
+fi
+
+#check if we have read permissions and the number of args given is 2 
+if [ ! -r "$2" ] && [ "$#" -eq 2 ]
+then
+   badParams $fileERR
+fi
+
+###########Row calculations################
+#Calculate average and median for row operation
+#references:
+#http://ss64.com/bash/tr.html
+#http://ss64.com/bash/wc.html
+#http://ss64.com/bash/sort.html
+
+if [ "$operationMode" == $rArg ]
+then
+   #pipe title to Temp for display 
+   echo "Average Median" | cat >> $TEMP
+
+	#read in till reached eof
+   while read -r line
+   do
+	#use wordcount to count numbers (words) in each row
+      rowSize=$(echo $line | wc -w)
+	#get row values from row 
+      rowVals=$(echo $line | tr "	" "\n")
+      #sum the row using helper function sumNums
+      sum=$(sumNums "$rowVals")
+      #Find the average of row using half round up (a+(b/2))/b
+      rowAvg=$(avgRound $sum $rowSize )
+	  # get median position using helper function getMedian
+      median=$(getMedian $rowSize )
+	  # using median position, sort row then get median value 
+	  # translate from space->newline then pipe to sort row numerically then translate space->/n
+	  # next cut result and return at median position giving us the row median!	  
+      rowMed=$(echo $(echo $rowVals | tr " " "\n" | sort -g | tr "\n" " ") | cut -d " " -f $median)
+	
+	  #pipe to temp file to display 
+      echo "$rowAvg	$rowMed" | cat >> $TEMP
+	#if arg2 read file, if not than user entered from stdin 
+   done < "${2:-/dev/stdin}" 
+fi
+
+###########Column calculations################
+#Calculate average and median for column operation
+#references:
+#http://ss64.com/bash/tr.html
+#http://ss64.com/bash/wc.html
+#http://ss64.com/bash/sort.html
+#http://ss64.com/bash/head.html
+
+if [ "$operationMode" == $cArg ]
+then
+	#if we have a file output it using head then count number of rows in a column using wordcount
+   if [ "$#" -eq 2 ]
+   then
+      rowSize=$(head -n 1 $2 | wc -w)
+   else
+      #we are using stdin, count #'s of rows in column using wc
+      rowSize=$(head -n 1 | wc -w)
+      #if using stdin ensure formatting is correct before preceding
+      cols=""
+      while read line
+      do
+	 allColumns="$cols\n$line"
+      done < /dev/stdin
+   fi
+   #pipe title to Temp for display 
+   echo "Averages:" | cat >> $TEMP  
+   averages=""
+   #loop through each row 
+   for i in $(seq 1 $rowSize)
+   do
+      if [ "$#" -eq 2 ]
+      then
+	#if we have a file divide file and cut out col, then translate /n->spaces
+	 colVals=$(cut -f $i $2 | tr "\n" " ")
+      else
+	#we are using stdin, cut from there and translate /n->spaces before any arithmetic
+	 colVals=$(echo "$allColumns" | cut -f $i | tr "\n" " ")
+      fi
+	  #use wordcount to count # of values in each col
+      colSize=$(echo $colVals | wc -w)
+	  #sum the column using helper function sumNums
+	  sum=$(sumNums "$colVals")
+      #Find the average of row using half round up (a+(b/2))/b
+      colAvg=$(avgRound $sum $colSize )
+	  #if first average column no extra \t, else add \t
+      if [ $i -eq 1 ]
+      then
+		averages="$colAvg"
+      else
+		averages="$averages\t$colAvg"
+      fi
+   done
+
+   #pipe averages to temp file 
+   #use -e for interpretation of \'s
+   echo -e "$averages" | cat >> $TEMP
+
+   #pipe title to temp for display
+   echo "Medians:" | cat >> $TEMP
+
+   #calculate median values 
+   medians=""
+   for i in $(seq 1 $rowSize)
+   do
+      if [ "$#" -eq 2 ]
+      then
+	 #if we have a file divide file and cut out col, then translate /n->spaces
+	  colVals=$(cut -f $i $2 | tr "\n" " ")
+      else
+	#we are using stdin, cut from there and translate /n->spaces before any arithmetic
+	 colVals=$(echo "$allColumns" | cut -f $i | tr "\n" " ")
+      fi
+      colSize=$(echo $colVals | wc -w)	  
+	# get median position using helper function getMedian
+      median=$(getMedian $rowSize )
+	# using median position, sort col then get median value 
+	# translate from space->newline then pipe to sort row numerically then translate space->/n
+	# next cut result and return at median position giving us the col median!	  
+     colMedian=$(echo $(echo $colVals | tr " " "\n" | sort -g | tr "\n" " ") | cut -d " " -f $median)
+
+	  #if first median column no extra \t, else add \t
+      if [ $i -eq 1 ]
+      then
+		medians="$colMedian"
+      else 
+		medians="$medians\t$colMedian"
+      fi
+   
+   done
+
+   #pipe to temp file 
+   #use -e for interpretation of \'s
+   echo -e "$medians" | cat >> $TEMP
+
+fi
+
+#display temp file with calculations and then delete 
+#clean up with rm, just remember not to do rm -rf in home directory! ;)
+cat $TEMP
+rm -f $TEMP
