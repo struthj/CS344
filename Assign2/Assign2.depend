@@ -1,0 +1,12 @@
+# depslib dependency file v1.0
+1487246148 source:c:\users\josep\documents\github\cs344\assign2\main.c
+	<stdio.h>
+	<string.h>
+	<stdlib.h>
+	<time.h>
+	<stdlib.h>
+	<sys/types.h>
+	<sys/stat.h>
+	<unistd.h>
+	<dirent.h>
+
