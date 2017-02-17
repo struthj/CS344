@@ -1,0 +1,8 @@
+ROOM NAME: CouncilChamber
+CONNECTION 1: OfficersClub
+CONNECTION 2: CouncilChamber
+CONNECTION 3: TheBrig
+CONNECTION 4: TheLifeStation
+CONNECTION 5: Airlocks
+CONNECTION 6: TheBridge
+ROOM TYPE: MID_ROOM
