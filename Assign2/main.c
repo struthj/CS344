@@ -41,6 +41,8 @@ struct Room {
 	enum Room_Type type;
 };
 
+
+
 //Helper function return a random number between 7
 int randRoom() {
 	return rand() % NUM_ROOMS;
@@ -70,6 +72,33 @@ void nameRooms() {
 	}
 }
 
+
+//list connected rooms
+void printConnections(int roomNum) {
+	int i;
+	for (i = 0; i < totRooms[roomNum].numConnects; i++) {
+		printf("Connected to: %s \n", totRooms[roomNum].totConnectedRooms[i]->name);
+	}
+}
+//For Debug purposes
+void printRooms() {
+	int i;
+	int j;
+	for (i = 0; i < NUM_ROOMS; i++) {
+		printf("RoomName is %s, Number of Connections is %d, Total Connections is %d , Type is: %d \n", totRooms[i].name, totRooms[i].numConnects, totRooms[i].totNumConnects, totRooms[i].type);
+		printConnections(i);
+	}
+}
+
+void printSingleRoom(int n){
+    printf("____ROOM CONTENTS_____\n");
+    printf("RoomName is %s, Number of Connections is %d, Total Connections is %d , Type is: %d \n", totRooms[n].name, totRooms[n].numConnects, totRooms[n].totNumConnects, totRooms[n].type);
+    printConnections(n);
+
+}
+
+
+
 int checkConnect(int roomNum, int roomCon) {
 	int i;
 	int connectResult = 0;
@@ -89,8 +118,9 @@ int tryConnect(int roomNum, int roomCon) {
 	struct Room *roomA = &totRooms[roomNum];
 	struct Room *roomB = &totRooms[roomCon];
 	int connectResult = 1;
-	if (roomA->numConnects == CON_MAX) {
-		connectResult = 1;
+	if (roomA->numConnects == CON_MAX || roomA->numConnects == roomA->totNumConnects) {
+		connectResult = 0;
+		return connectResult;
 	}
 	else if (checkConnect(roomNum, roomCon) == 1) {
 		connectResult = 0;
@@ -115,7 +145,7 @@ void connectRooms() {
 	int j;
 	//nested loop outer: for 7 rooms inner: for each rooms connections (3 to 6)
 	for (i = 0; i < NUM_ROOMS; i++) {
-		for (j = 0; j < totRooms[i].totNumConnects; j++) {
+		for (j = 0; j < totRooms[i].totNumConnects ; j++) {
 			int randConnect = randRoom();
 			//loop for each and try to connect
 			while (tryConnect(i, randConnect) == 1)
@@ -131,23 +161,7 @@ void setMazeGoals() {
 	totRooms[NUM_ROOMS - 1].type = END_ROOM;
 }
 
-//list connected rooms
-void printConnections(int roomNum) {
-	int i;
-	for (i = 0; i < totRooms[roomNum].numConnects; i++) {
-		printf("Connected to: %s \n", totRooms[roomNum].totConnectedRooms[i]->name);
-	}
-}
 
-//For Debug purposes
-void printRooms() {
-	int i;
-	int j;
-	for (i = 0; i < NUM_ROOMS; i++) {
-		printf("RoomName is %s, Number of Connections is %d, Total Connections is %d , Type is: %d \n", totRooms[i].name, totRooms[i].numConnects, totRooms[i].totNumConnects, totRooms[i].type);
-		printConnections(i);
-	}
-}
 
 void buildRooms() {
 	//create rooms with random names
@@ -158,15 +172,6 @@ void buildRooms() {
 	setMazeGoals();
 }
 
-void make_directory(const char* name)
-{
-#ifdef __linux__
-    mkdir(name, 777);
-#else
-    _mkdir(name);
-#endif
-}
-
 void createRoomDir() {
 	int Id = getpid();
 	char processId[10];
@@ -174,7 +179,7 @@ void createRoomDir() {
 	strcpy(directory,"./struthj.rooms.");
 	strncat(directory, processId, 50);
 	//file permissions, create dir and cd in
-	make_directory(directory);
+	mkdir(directory, 0777);
 	chdir(directory);
 }
 
@@ -208,6 +213,7 @@ int main() {
 	printRooms();
 	createRoomDir();
 	roomsToFile();
-
+	printf("FINALROOMS\n");
+    printRooms();
 	return 0;
 }

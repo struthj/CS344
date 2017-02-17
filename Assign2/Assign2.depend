@@ -10,3 +10,14 @@
 	<unistd.h>
 	<dirent.h>
 
+1487328057 source:/home/streamin/Documents/CS344/Assign2/main.c
+	<stdio.h>
+	<string.h>
+	<stdlib.h>
+	<time.h>
+	<stdlib.h>
+	<sys/types.h>
+	<sys/stat.h>
+	<unistd.h>
+	<dirent.h>
+
