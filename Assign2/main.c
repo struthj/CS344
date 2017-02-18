@@ -13,6 +13,7 @@
 #define CON_MAX 6
 #define NUM_ROOMS 7
 
+
 //7  Rooms for our BattleStar Galactica Themed Adventure Game
 char* Room_Name[NUM_NAMES] = {
 	"TheBridge",
@@ -29,12 +30,12 @@ char* Room_Name[NUM_NAMES] = {
 
 enum Room_Type {
 	START_ROOM,
-	MID,
+	MID_ROOM,
 	END_ROOM
 };
 
 struct Room {
-	const char* name;
+	char name[100];
 	struct Room* totConnectedRooms[6];
 	int numConnects;
 	int totNumConnects;
@@ -61,14 +62,15 @@ void nameRooms() {
 		int randConnect = CON_MIN + (rand() % (CON_MAX - CON_MIN +1));
 		totRooms[i].totNumConnects = randConnect;
 		while(1){
+            // name all of the rooms using a random roomnumber/index
 			int roomNum = randRoom();
 			if (numRoomsUsed[roomNum] == 0) {
 				numRoomsUsed[roomNum] = 1;
-				totRooms[i].name = Room_Name[roomNum];
+				strcpy(totRooms[i].name, Room_Name[roomNum]);
 				break;
 			}
 		};
-		totRooms[i].type = MID;
+		totRooms[i].type = MID_ROOM; //set all as MID_ROOM in the initialization
 	}
 }
 
@@ -83,13 +85,13 @@ void printConnections(int roomNum) {
 //For Debug purposes
 void printRooms() {
 	int i;
-	int j;
 	for (i = 0; i < NUM_ROOMS; i++) {
 		printf("RoomName is %s, Number of Connections is %d, Total Connections is %d , Type is: %d \n", totRooms[i].name, totRooms[i].numConnects, totRooms[i].totNumConnects, totRooms[i].type);
 		printConnections(i);
 	}
 }
 
+//for debug purposes print a single room struct
 void printSingleRoom(int n){
     printf("____ROOM CONTENTS_____\n");
     printf("RoomName is %s, Number of Connections is %d, Total Connections is %d , Type is: %d \n", totRooms[n].name, totRooms[n].numConnects, totRooms[n].totNumConnects, totRooms[n].type);
@@ -98,7 +100,7 @@ void printSingleRoom(int n){
 }
 
 
-
+//A "boolean" to check if two rooms can be connected
 int checkConnect(int roomNum, int roomCon) {
 	int i;
 	int connectResult = 0;
@@ -118,17 +120,23 @@ int tryConnect(int roomNum, int roomCon) {
 	struct Room *roomA = &totRooms[roomNum];
 	struct Room *roomB = &totRooms[roomCon];
 	int connectResult = 1;
-	if (roomA->numConnects == CON_MAX || roomA->numConnects == roomA->totNumConnects) {
+	if(roomNum == roomCon){
+        connectResult = 0;
+        return connectResult;
+	}
+	else if (roomA->numConnects == CON_MAX || roomA->numConnects == roomA->totNumConnects) { //cant have more than 6
 		connectResult = 0;
 		return connectResult;
 	}
-	else if (checkConnect(roomNum, roomCon) == 1) {
+	else if (checkConnect(roomNum, roomCon) == 1) { //must be true to continue
 		connectResult = 0;
+		return connectResult;
 	}
-	else if (roomA->numConnects == CON_MAX || roomB->numConnects == CON_MAX) {
+	else if (roomA->numConnects == CON_MAX || roomB->numConnects == CON_MAX) { //check if both rooms are already full of connections
 		connectResult = 0;
+		return connectResult;
 	}
-	else if (roomA != NULL && roomB != NULL) {
+	else if ((roomA != NULL && roomB != NULL) && ( roomNum != roomCon)){
 		//connect the rooms
 		roomA->totConnectedRooms[roomA->numConnects] = roomB;
 		roomB->totConnectedRooms[roomB->numConnects] = roomA;
@@ -156,13 +164,14 @@ void connectRooms() {
 	}
 }
 
+//Set maze START and END
 void setMazeGoals() {
 	totRooms[0].type = START_ROOM;
 	totRooms[NUM_ROOMS - 1].type = END_ROOM;
 }
 
 
-
+//Functions to build the maze using 3 help functions
 void buildRooms() {
 	//create rooms with random names
 	nameRooms();
@@ -172,6 +181,7 @@ void buildRooms() {
 	setMazeGoals();
 }
 
+//concatenate string with PID to create directory for room files
 void createRoomDir() {
 	int Id = getpid();
 	char processId[10];
@@ -189,31 +199,36 @@ void roomsToFile() {
     int j;
     for (i = 0; i < NUM_ROOMS; i++) {
         FILE *myfile = fopen(totRooms[i].name, "w");
+        printf("ROOMNAME: %s\n", totRooms[i].name);
+        //room name is first then list of connections
         fprintf(myfile, "ROOM NAME: %s\n", totRooms[i].name);
         for (j = 0; j < totRooms[i].numConnects; j++) {
-            fprintf(myfile, "CONNECTION %d: %s\n", j + 1, totRooms[j].name);
+            printf("\n%s\n", totRooms[j].name);
+            fprintf(myfile, "CONNECTION %d: %s\n", j + 1, totRooms[i].totConnectedRooms[j]->name);
         }
-        if(totRooms[i].type == 0){
+        if(totRooms[i].type == 0){ //enum 0 is START
             fprintf(myfile, "ROOM TYPE: START_ROOM");
         }
-        if(totRooms[i].type == 1){
+        if(totRooms[i].type == 1){ //enum 1 is MID
             fprintf(myfile, "ROOM TYPE: MID_ROOM");
         }
-        if(totRooms[i].type == 2){
+        if(totRooms[i].type == 2){ //enum 2 is END
             fprintf(myfile, "ROOM TYPE: END_ROOM");
         }
-        fclose(myfile);
+        fclose(myfile); //close the file
     }
         //cd ..
         chdir("..");
 }
 
 int main() {
+    //initlaize rooms and build maze
 	buildRooms();
-	printRooms();
+	//printRooms();
+	//create struthj.rooms.PID directory
 	createRoomDir();
+	//write room structs to txt file
 	roomsToFile();
-	printf("FINALROOMS\n");
-    printRooms();
+    //printRooms();
 	return 0;
 }
