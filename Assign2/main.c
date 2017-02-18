@@ -203,7 +203,6 @@ void roomsToFile() {
         //room name is first then list of connections
         fprintf(myfile, "ROOM NAME: %s\n", totRooms[i].name);
         for (j = 0; j < totRooms[i].numConnects; j++) {
-            printf("\n%s\n", totRooms[j].name);
             fprintf(myfile, "CONNECTION %d: %s\n", j + 1, totRooms[i].totConnectedRooms[j]->name);
         }
         if(totRooms[i].type == 0){ //enum 0 is START

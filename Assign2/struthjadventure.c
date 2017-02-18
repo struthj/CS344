@@ -276,11 +276,11 @@ void* getTime(){
     pthread_mutex_lock(&tlock); //lock file before reading
     char timeFile[] = "currentTime.txt";
     char time[100];
-    memset(time,'\0', sizeof(time));
+    memset(time,'\0', sizeof(time));//alloc mem for time str
     FILE *myfile;
     myfile = fopen(timeFile, "r");
     while(fgets(time, sizeof(time), myfile) != NULL){
-        printf("\n%s\n", time);
+        printf("%s\n", time);
     }
     fclose(myfile); //close and unlock file when we are done
 
